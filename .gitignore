@@ -2,3 +2,4 @@
 .idea
 UsersMails
 __pycache__/
+token.env

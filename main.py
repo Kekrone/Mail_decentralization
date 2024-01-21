@@ -7,7 +7,7 @@ from os import getenv
 from typing import Any, Dict
 import pickle
 
-import config
+from config import TOKEN
 import dbmanager as dm
 
 from aiogram import Bot, Dispatcher, F, Router, html
@@ -21,8 +21,6 @@ from aiogram.types import (
     ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
 )
-
-TOKEN = "6781267153:AAGmWDZrL2n-qUfkR-hyyGhVzpfFfvzxxWU"
 
 n = 0
 form_router = Router()
