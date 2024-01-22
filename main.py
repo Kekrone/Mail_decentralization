@@ -40,9 +40,54 @@ class Form(StatesGroup):
 async def command_start(message: Message, state: FSMContext) -> None:
     await state.set_state(Form.login)
     await message.answer(
-        "Hi there! What's your login?",
+        "Type /mail {login}@apethrone.ru {mailaddress}",
         reply_markup=ReplyKeyboardRemove(),
     )
+
+@form_router.message(Command("mailadd"))
+async def mailadd(message: Message):
+    try:
+
+        text_tuple = (message.text.split())
+        mail = text_tuple[2]
+        if (mail.find('@') == -1) or (not 5 < len(mail) < 255):
+            raise IndexError
+
+        elif mail[mail.find('@'):].find('.') == -1:
+            raise IndexError
+
+        else:
+            user_id = message.from_user.id
+            mail_from = text_tuple[1] + '@apethrone'
+            dm.register_user(user_id=user_id, mailaddressfrom=mail_from, mail=mail)
+
+    except IndexError:
+        await message.answer("Ошибка")
+
+@form_router.message(Command("getuser"))
+async def getuser(message: Message):
+
+    try:
+        user_id=message.from_user.id
+
+        table = str(dm.get_user(user_id=user_id))
+
+        await message.answer(table)
+    except IndexError:
+        await message.answer("Нет")
+
+@form_router.message(Command("maildelete"))
+async def maildelete(message: Message):
+
+    try:
+        mails = (message.text.split())
+        mailaddressfrom = mails[1]
+
+        dm.delete_user(mailaddressfrom=mailaddressfrom)
+
+    except IndexError:
+        await message.answer("Нет")
+
 
 @form_router.message(Command("test"))
 async def test(message: Message):
