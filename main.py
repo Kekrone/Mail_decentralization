@@ -20,7 +20,7 @@ form_router = Router()
 
 @form_router.message(CommandStart())
 async def command_start(message: Message) -> None:
-    await message.answer("Type /mail {login}@apethrone.ru {mailaddress}")
+    await message.answer("Type /mailadd {login}@apethrone.ru {mailaddress}")
 
 
 @form_router.message(Command("mailadd"))
@@ -38,7 +38,7 @@ async def mailadd(message: Message):
         else:
             user_id = message.from_user.id
             name = text_tuple[1]
-            mail_from = text_tuple[1] + '@apethrone'
+            mail_from = text_tuple[1] + '@apethrone.ru'
             dm.register_user(user_id=user_id, mailaddressfrom=mail_from, mail=mail)
             tm.add_to_ubuntu(name=name)
 
@@ -51,10 +51,14 @@ async def getuser(message: Message):
 
     try:
         user_id = message.from_user.id
-
-        table = str(dm.get_user(user_id=user_id))
-
-        await message.answer(table)
+        string = ''
+        answers = dm.get_user(user_id=user_id)
+        if len(answers) != 0:
+            for answer in answers:
+                string += f'Почта отправитель: {answer[1]} -> Почта получатель: {answer[2]}\n\n'
+            await message.answer(string)
+        else:
+            raise IndexError
     except IndexError:
         await message.answer("Нет")
 
@@ -64,7 +68,7 @@ async def maildelete(message: Message):
 
     try:
         mails = (message.text.split())
-        mailaddressfrom = mails[1] + '@apethrone'
+        mailaddressfrom = mails[1] + '@apethrone.ru'
         name = mails[1]
 
         dm.delete_user(mailaddressfrom=mailaddressfrom)
