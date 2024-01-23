@@ -1,9 +1,6 @@
 import asyncio
-import json
 import logging
-import os.path
 import sys
-import os
 
 from config import TOKEN
 import dbmanager as dm
@@ -72,48 +69,6 @@ async def maildelete(message: Message):
 
         dm.delete_user(mailaddressfrom=mailaddressfrom)
         tm.add_to_ubuntu(name=name)
-    except IndexError:
-        await message.answer("Нет")
-
-
-@form_router.message(Command("test"))
-async def test(message: Message):
-
-    try:
-        text_tuple = (message.text.split())
-        mail = text_tuple[1]
-        mail_from = text_tuple[2]
-
-        if (mail.find('@') == -1 or mail_from.find('@') == -1) or (not 5 < len(mail) < 255) or (not 5 < len(mail_from) < 255):
-            raise IndexError
-
-        elif mail[mail.find('@'):].find('.') == -1 or mail_from[mail_from.find('@'):].find('.') == -1:
-            raise IndexError
-
-        else:
-
-            user_id = message.from_user.id
-
-            path_to_json = f'UsersMails/{user_id}.json'
-
-            if not os.path.isfile(path_to_json):
-                user_dict: dict = {'mail': [mail],
-                                'mail_from': [mail_from]}
-
-                with open(path_to_json, 'w') as json_file:
-                    json.dump(user_dict, json_file, indent=4)
-
-            else:
-
-                with open(path_to_json, "r") as json_file:
-                    user_dict: dict = json.load(json_file)
-
-                    user_dict['mail'].append(mail)
-                    user_dict['mail_from'].append(mail_from)
-
-                with open(path_to_json, 'w') as json_file:
-                    json.dump(user_dict, json_file, indent=4)
-
     except IndexError:
         await message.answer("Нет")
 
