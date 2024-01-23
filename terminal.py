@@ -1,8 +1,7 @@
 import os
-
+from config import pswd
 
 def add_to_ubuntu(name):
-    pswd = "123"
     os.system("useradd -p " + pswd + " " + name)
 
 
