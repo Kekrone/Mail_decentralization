@@ -2,7 +2,7 @@ import sqlite3
 import config
 
 
-def create_table() -> bool:
+def create_table():
     try:
         con = sqlite3.connect(config.path_to_db)
         cursor = con.cursor()
@@ -26,7 +26,7 @@ def create_table() -> bool:
         print("Connection close")
 
 
-def register_user(user_id: int, mailaddressfrom: str, mail: str) -> bool:
+def register_user(user_id: int, mailaddressfrom: str, mail: str):
     print(f"register_user: {user_id}")
 
     try:

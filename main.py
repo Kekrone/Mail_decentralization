@@ -3,46 +3,28 @@ import json
 import logging
 import os.path
 import sys
-from os import getenv
-from typing import Any, Dict
-import pickle
+import os
 
 from config import TOKEN
 import dbmanager as dm
 
-from aiogram import Bot, Dispatcher, F, Router, html
+from aiogram import Bot, Dispatcher, Router
 from aiogram.enums import ParseMode
 from aiogram.filters import Command, CommandStart
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
+
 from aiogram.types import (
-    KeyboardButton,
-    Message,
-    ReplyKeyboardMarkup,
-    ReplyKeyboardRemove,
+    Message
 )
 
-n = 0
+import terminal as tm
+
 form_router = Router()
-file = open('mail.p', 'rb')
-mailarray = pickle.load(file)
-file.close()
-
-
-class Form(StatesGroup):
-    login = State()
-    password = State()
-    creation = State()
-    mailgenend = State()
 
 
 @form_router.message(CommandStart())
-async def command_start(message: Message, state: FSMContext) -> None:
-    await state.set_state(Form.login)
-    await message.answer(
-        "Type /mail {login}@apethrone.ru {mailaddress}",
-        reply_markup=ReplyKeyboardRemove(),
-    )
+async def command_start(message: Message) -> None:
+    await message.answer("Type /mail {login}@apethrone.ru {mailaddress}")
+
 
 @form_router.message(Command("mailadd"))
 async def mailadd(message: Message):
@@ -58,17 +40,20 @@ async def mailadd(message: Message):
 
         else:
             user_id = message.from_user.id
+            name = text_tuple[1]
             mail_from = text_tuple[1] + '@apethrone'
             dm.register_user(user_id=user_id, mailaddressfrom=mail_from, mail=mail)
+            tm.add_to_ubuntu(name=name)
 
     except IndexError:
         await message.answer("Ошибка")
+
 
 @form_router.message(Command("getuser"))
 async def getuser(message: Message):
 
     try:
-        user_id=message.from_user.id
+        user_id = message.from_user.id
 
         table = str(dm.get_user(user_id=user_id))
 
@@ -76,15 +61,17 @@ async def getuser(message: Message):
     except IndexError:
         await message.answer("Нет")
 
+
 @form_router.message(Command("maildelete"))
 async def maildelete(message: Message):
 
     try:
         mails = (message.text.split())
-        mailaddressfrom = mails[1]
+        mailaddressfrom = mails[1] + '@apethrone'
+        name = mails[1]
 
         dm.delete_user(mailaddressfrom=mailaddressfrom)
-
+        tm.add_to_ubuntu(name=name)
     except IndexError:
         await message.answer("Нет")
 
@@ -111,7 +98,7 @@ async def test(message: Message):
 
             if not os.path.isfile(path_to_json):
                 user_dict: dict = {'mail': [mail],
-                             'mail_from': [mail_from]}
+                                'mail_from': [mail_from]}
 
                 with open(path_to_json, 'w') as json_file:
                     json.dump(user_dict, json_file, indent=4)
@@ -127,136 +114,8 @@ async def test(message: Message):
                 with open(path_to_json, 'w') as json_file:
                     json.dump(user_dict, json_file, indent=4)
 
-
     except IndexError:
         await message.answer("Нет")
-
-
-
-
-@form_router.message(Command("cancel"))
-@form_router.message(F.text.casefold() == "cancel")
-async def cancel_handler(message: Message, state: FSMContext) -> None:
-    """
-    Allow user to cancel any action
-    """
-    current_state = await state.get_state()
-    if current_state is None:
-        return
-
-    logging.info("Cancelling state %r", current_state)
-    await state.clear()
-    await message.answer(
-        "Cancelled.",
-        reply_markup=ReplyKeyboardRemove(),
-    )
-
-
-@form_router.message(Command('delete'))
-async def delete(message: Message, state: FSMContext):
-    text: str = message.text.split()[-1]
-    mailarray.remove(text)
-    with open('mail.p', 'wb') as file:
-        pickle.dump(mailarray, file)
-
-
-@form_router.message(Form.login)
-async def process_name(message: Message, state: FSMContext) -> None:
-    await state.update_data(name=message.text)
-    await state.set_state(Form.password)
-    login = message.text
-    if login == "master":
-        await message.answer("correct, now let's proceed to your password",
-                             reply_markup=ReplyKeyboardRemove())
-    else:
-        await message.answer("incorrect, try again",
-                             reply_markup=ReplyKeyboardRemove())
-        await state.set_state(Form.login)
-
-
-@form_router.message(Form.password)
-async def process_password(message: Message, state: FSMContext) -> None:
-    data = await state.get_data()
-    password = message.text
-    if password == "pass":
-        await message.answer("correct, now you wanna procced with the creation of new mail?",
-                             reply_markup=ReplyKeyboardMarkup(
-                                 keyboard=[
-                                     [
-                                         KeyboardButton(text="Yes"),
-                                         KeyboardButton(text="No"),
-                                     ]
-                                 ],
-                                 resize_keyboard=True,
-                             )
-                             )
-        await state.set_state(Form.creation)
-        Valid = True
-    else:
-        await message.answer("incorrect")
-        await state.set_state(Form.password)
-
-
-@form_router.message(Form.creation, F.text.casefold() == "yes")
-async def process_creation_yes(message: Message, state: FSMContext) -> None:
-    await state.set_state(Form.mailgenend)
-    await message.answer("Cool, so let's begin, then. \nWhat will be your e-mail login?",
-                         reply_markup=ReplyKeyboardRemove())
-    await message.answer("Just type like this {You write this part}@apethrone.ru")
-
-
-@form_router.message(Form.creation, F.text.casefold() == "no")
-async def process_creation_no(message: Message, state: FSMContext) -> None:
-    await message.answer("Then why would you even log in bro? Just leave...",
-                         reply_markup=ReplyKeyboardRemove())
-    await state.clear()
-
-
-@form_router.message(Form.creation)
-async def process_creation_unexpected(message: Message, state: FSMContext):
-    await message.answer("Bro just doesn't see the context menu, does he?",
-                         reply_markup=ReplyKeyboardMarkup(
-                             keyboard=[
-                                 [
-                                     KeyboardButton(text="Yes"),
-                                     KeyboardButton(text="No"),
-                                 ]
-                             ],
-                             resize_keyboard=True,
-                         )
-                         )
-    await state.set_state(Form.creation)
-
-
-@form_router.message(Form.mailgenend)
-async def mail_end(message: Message, state: FSMContext):
-    name = message.text
-    if name in mailarray:
-        await message.answer("already exists")
-    else:
-        mailarray.append(name)
-
-        user_id: int = message.from_user.id
-        mail = "google@gmail.com"
-        mailadreesfrom: str = f"{name.lower()}@apethrone.ru"
-
-        dm.register_user(user_id=user_id, mail=mail, mailaddressfrom=mailadreesfrom)
-
-        await message.answer("You're newly generated email address is " + name.lower() + "@apethrone.ru", sep="")
-        with open('mail.p', 'wb') as file:
-            pickle.dump(mailarray, file)
-
-
-async def show_summary(message: Message, data: Dict[str, Any], positive: bool = True) -> None:
-    name = data["name"]
-    language = data.get("language", "<something unexpected>")
-    text = f"I'll keep in mind that, {html.quote(name)}, "
-    text += (
-        f"you like to write bots with {html.quote(language)}."
-        if positive
-        else "you don't like to write bots, so sad..."
-    )
-    await message.answer(text=text, reply_markup=ReplyKeyboardRemove())
 
 
 async def main():
